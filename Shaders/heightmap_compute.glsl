@@ -84,27 +84,29 @@ float fbm(vec2 p) {
 
 // Main compute shader function
 void main() {
-    // Get the current pixel coordinate
+    // Récupérer les coordonnées du pixel actuel dans l'image (ID de thread)
     ivec2 pixel_coords = ivec2(gl_GlobalInvocationID.xy);
 
-    // Get image dimensions
+    // Obtenir les dimensions de l'image
     ivec2 image_size = imageSize(height_map);
 
-    // Check if we're within the image bounds
+    // Vérifier si on est dans les bornes de l'image
     if (pixel_coords.x >= image_size.x || pixel_coords.y >= image_size.y) {
         return;
     }
-    
-    // Calculate the sample position
-    vec2 sample_pos = vec2(pixel_coords) * noise_params.noise_scale + noise_params.offset;
 
-    // Apply additional seed offset to sample position
-    sample_pos += float(noise_params.seed) * 0.001;
+    // Convertir les coordonnées de pixel en coordonnées de monde normalisées
+    vec2 uv = vec2(pixel_coords) / vec2(image_size);
 
-    // Generate noise value (0 to 1)
-    float noise_value = fbm(sample_pos);
+    // Appliquer l’échelle et le décalage pour le bruit
+    vec2 sample_pos = uv * noise_params.noise_scale + noise_params.offset;
 
-    // Write the height value to the image
-    imageStore(height_map, pixel_coords, vec4(noise_value));
+    // Ajouter une variation de seed (converti en vec2 arbitrairement)
+    sample_pos += vec2(float(noise_params.seed % 100), float((noise_params.seed / 100) % 100));
 
+    // Générer la valeur de bruit
+    float height = fbm(sample_pos);
+
+    // Écrire la valeur dans la heightmap (r32f → format flottant)
+    imageStore(height_map, pixel_coords, vec4(height, 0.0, 0.0, 1.0));
 }
